@@ -21,7 +21,7 @@ import (
 */
 
 func main() {
-	urlFlag := flag.String("url", "https://gophercises.com", "url of the website to scrape")
+	urlFlag := flag.String("url", "", "url of the website to scrape")
 	maxDepth := flag.Int("depth", 10, "maximum number of links deep to traverse")
 	flag.Parse()
 
@@ -35,12 +35,12 @@ func bfs(urlStr string, maxDepth int) []string {
 	seen := make(map[string]struct{})
 	var q map[string]struct{}
 	nq := map[string]struct{}{
-		urlStr: struct{}{},
+		urlStr: {},
 	}
 
 	for i := 0; i <= maxDepth; i++ {
 		q, nq = nq, make(map[string]struct{})
-		for url, _ := range q {
+		for url := range q {
 			if _, ok := seen[url]; ok {
 				continue
 			}
@@ -52,7 +52,7 @@ func bfs(urlStr string, maxDepth int) []string {
 	}
 
 	ret := make([]string, 0, len(seen))
-	for url, _ := range seen {
+	for url := range seen {
 		ret = append(ret, url)
 	}
 	return ret
