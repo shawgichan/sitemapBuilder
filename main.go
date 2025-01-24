@@ -1,34 +1,55 @@
 package main
 
 import (
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/shawgichan/link"
 )
 
 /*
-	1. Get the webpage
-	2. Parse all the links on the page
-	3. Build proper urls with our links
-	4. Filter out any links with a different domain
-	5. Find all pages (BFS)
-	6. Print out XML
+1. Get the webpage
+2. Parse all the links on the page
+3. Build proper urls with our links
+4. Filter out any links with a different domain
+5. Find all pages (BFS)
+6. Print out XML
 */
+const xmlns = "http://www.sitemaps.org/schemas/sitemap/0.9"
+
+type loc struct {
+	Value string `xml:"loc"`
+}
+type urlset struct {
+	Urls  []loc  `xml:"url"`
+	Xmlns string `xml:"xmlns,attr"`
+}
 
 func main() {
-	urlFlag := flag.String("url", "", "url of the website to scrape")
-	maxDepth := flag.Int("depth", 10, "maximum number of links deep to traverse")
+	urlFlag := flag.String("url", "https://google.com", "url of the website to scrape")
+	maxDepth := flag.Int("depth", 1, "maximum number of links deep to traverse")
 	flag.Parse()
 
 	pages := bfs(*urlFlag, *maxDepth)
-	for _, page := range pages {
-		fmt.Println(page)
+	toXml := urlset{
+		Xmlns: xmlns,
 	}
+	for _, page := range pages {
+		toXml.Urls = append(toXml.Urls, loc{Value: page})
+	}
+	fmt.Print(xml.Header)
+	enc := xml.NewEncoder(os.Stdout)
+	enc.Indent("", "  ")
+	if err := enc.Encode(toXml); err != nil {
+		panic(err)
+	}
+	fmt.Println()
 }
 
 func bfs(urlStr string, maxDepth int) []string {
@@ -39,14 +60,21 @@ func bfs(urlStr string, maxDepth int) []string {
 	}
 
 	for i := 0; i <= maxDepth; i++ {
+		fmt.Println("Crawling level", i, "with", len(nq), "URLs")
 		q, nq = nq, make(map[string]struct{})
+		if len(q) == 0 {
+			break
+		}
 		for url := range q {
+			fmt.Println("Crawling", url)
 			if _, ok := seen[url]; ok {
 				continue
 			}
 			seen[url] = struct{}{}
 			for _, link := range get(url) {
-				nq[link] = struct{}{}
+				if _, ok := seen[link]; !ok {
+					nq[link] = struct{}{}
+				}
 			}
 		}
 	}
