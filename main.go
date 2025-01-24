@@ -21,7 +21,7 @@ import (
 */
 
 func main() {
-	urlFlag := flag.String("url", "", "url of the website to scrape")
+	urlFlag := flag.String("url", "https://google.com", "url of the website to scrape")
 	flag.Parse()
 	fmt.Println(*urlFlag)
 
@@ -44,7 +44,7 @@ func get(urlStr string) []string {
 		Host:   reqUrl.Host,
 	}
 	base := baseUrl.String()
-	return hrefs(resp.Body, base)
+	return filter(base, hrefs(resp.Body, base))
 }
 
 func hrefs(r io.Reader, base string) []string {
@@ -56,6 +56,16 @@ func hrefs(r io.Reader, base string) []string {
 			ret = append(ret, base+l.Href)
 		case strings.HasPrefix(l.Href, "http"):
 			ret = append(ret, l.Href)
+		}
+	}
+	return ret
+}
+
+func filter(base string, links []string) []string {
+	var ret []string
+	for _, link := range links {
+		if strings.HasPrefix(link, base) {
+			ret = append(ret, link)
 		}
 	}
 	return ret
